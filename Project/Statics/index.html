@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LinguistAI - Personal Translator</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed": "#e9ddff",
+                        "surface-container-low": "#f8f2fa",
+                        "tertiary": "#765b00",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-container": "#645a7d",
+                        "surface-variant": "#e6e0e9",
+                        "on-surface-variant": "#494551",
+                        "on-error": "#ffffff",
+                        "surface-container": "#f2ecf4",
+                        "outline-variant": "#cbc4d2",
+                        "secondary-fixed-dim": "#cdc0e9",
+                        "surface": "#fdf7ff",
+                        "on-tertiary-container": "#503d00",
+                        "inverse-surface": "#322f35",
+                        "surface-tint": "#6750a4",
+                        "tertiary-container": "#c9a74d",
+                        "secondary": "#63597c",
+                        "tertiary-fixed-dim": "#e7c365",
+                        "on-secondary-fixed-variant": "#4b4263",
+                        "inverse-primary": "#cfbcff",
+                        "surface-container-high": "#ece6ee",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#1d1b20",
+                        "secondary-container": "#e1d4fd",
+                        "inverse-on-surface": "#f5eff7",
+                        "on-tertiary-fixed": "#241a00",
+                        "primary": "#4f378a",
+                        "tertiary-fixed": "#ffdf93",
+                        "on-secondary-fixed": "#1f1635",
+                        "outline": "#7a7582",
+                        "on-background": "#1d1b20",
+                        "on-primary-container": "#e0d2ff",
+                        "on-primary": "#ffffff",
+                        "background": "#fdf7ff",
+                        "error-container": "#ffdad6",
+                        "surface-container-highest": "#e6e0e9",
+                        "surface-dim": "#ded8e0",
+                        "primary-fixed": "#e9ddff",
+                        "on-primary-fixed-variant": "#4f378a",
+                        "on-error-container": "#93000a",
+                        "primary-container": "#6750a4",
+                        "surface-bright": "#fdf7ff",
+                        "primary-fixed-dim": "#cfbcff",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed": "#22005d",
+                        "on-tertiary-fixed-variant": "#594400"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "1rem",
+                        "stack-gap": "1rem",
+                        "gutter": "1.5rem",
+                        "section-gap": "2.5rem",
+                        "container-max": "1200px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "display-lg-mobile": ["Inter"],
+                        "body-md": ["Inter"],
+                        "display-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "label-sm": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "display-lg-mobile": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "display-lg": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { background-color: #fdf7ff; color: #1d1b20; font-family: 'Inter', sans-serif; margin: 0; }
+
+        /* ===== Cursor-reactive dot grid background ===== */
+        #dot-grid-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .app-shell {
+            position: relative;
+            z-index: 1;
+        }
+
+        .glass-header { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .brand-gradient { background: linear-gradient(135deg, #4f378a 0%, #765b00 100%); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #4f378a; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Make sure cards sit above the canvas with a slight translucency so the dots peek through subtly */
+        aside, header, footer, .bg-white, .bg-surface-container, .bg-surface-container-low {
+            position: relative;
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+<!-- Cursor-reactive dot grid background -->
+<canvas id="dot-grid-canvas"></canvas>
+
+<div class="app-shell flex h-full w-full">
+
+<!-- SideNavBar -->
+<aside class="hidden md:flex flex-col h-full py-6 bg-surface/90 border-r border-outline-variant w-64">
+<div class="px-6 mb-10">
+<h1 class="font-headline-md text-headline-md text-primary">Personal Translator</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Effortless Intelligence</p>
+</div>
+<nav class="flex-1 px-4 space-y-2">
+<button class="nav-item bg-secondary-container text-on-secondary-container rounded-xl w-full flex items-center gap-3 p-3 transition-all active:scale-[0.98]" data-tab-id="translator" onclick="switchTab('translator')">
+<span class="material-symbols-outlined">translate</span>
+<span class="font-label-sm text-label-sm">Translator</span>
+</button>
+<button class="nav-item text-on-surface-variant flex items-center gap-3 p-3 w-full hover:bg-surface-container-high rounded-xl transition-colors active:scale-[0.98]" data-tab-id="history" onclick="switchTab('history')">
+<span class="material-symbols-outlined">history</span>
+<span class="font-label-sm text-label-sm">History</span>
+</button>
+<button class="nav-item text-on-surface-variant flex items-center gap-3 p-3 w-full hover:bg-surface-container-high rounded-xl transition-colors active:scale-[0.98]" data-tab-id="compare" onclick="switchTab('compare')">
+<span class="material-symbols-outlined">compare_arrows</span>
+<span class="font-label-sm text-label-sm">Compare</span>
+</button>
+<button class="nav-item text-on-surface-variant flex items-center gap-3 p-3 w-full hover:bg-surface-container-high rounded-xl transition-colors active:scale-[0.98]" data-tab-id="coming-soon" onclick="switchTab('coming-soon')">
+<span class="material-symbols-outlined">rocket_launch</span>
+<span class="font-label-sm text-label-sm">Coming Soon</span>
+</button>
+</nav>
+</aside>
+
+<!-- Main Content Canvas -->
+<main class="flex-1 overflow-y-auto relative bg-background/0">
+
+<!-- Top Nav -->
+<header class="glass-header sticky top-0 z-10 bg-surface/80 px-6 h-16 flex items-center justify-between shadow-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface" id="page-title">Translator</h2>
+</header>
+
+<div class="max-w-container-max mx-auto px-6 py-8">
+
+<!-- TRANSLATOR TAB -->
+<div class="tab-content active space-y-6" id="tab-translator">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="relative">
+<label class="block text-label-sm font-label-sm text-on-surface-variant mb-2">Source Language</label>
+<select class="w-full bg-surface-container border border-outline-variant rounded-xl p-3 text-body-md font-body-md focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" id="source-lang">
+<option>Detect Language</option>
+<option>English</option>
+<option>Urdu</option>
+<option>Spanish</option>
+<option>French</option>
+<option>Arabic</option>
+<option>German</option>
+<option>Chinese</option>
+</select>
+</div>
+<div class="relative">
+<label class="block text-label-sm font-label-sm text-on-surface-variant mb-2">Target Language</label>
+<select class="w-full bg-surface-container border border-outline-variant rounded-xl p-3 text-body-md font-body-md focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" id="target-lang">
+<option>English</option>
+<option>Urdu</option>
+<option>Spanish</option>
+<option>French</option>
+<option>German</option>
+<option>Japanese</option>
+</select>
+</div>
+</div>
+<div class="bg-white/90 rounded-2xl shadow-sm border border-outline-variant overflow-hidden focus-within:shadow-md focus-within:border-primary transition-all">
+<textarea class="w-full min-h-[200px] p-6 text-body-lg font-body-lg border-none focus:ring-0 resize-none placeholder:text-outline bg-transparent" id="translate-input" placeholder="Type or paste text to translate..."></textarea>
+<div class="bg-surface-container-low/90 px-6 py-4 flex justify-end gap-3">
+<button class="flex items-center gap-2 bg-secondary text-white px-6 py-2.5 rounded-full font-label-sm text-label-sm hover:scale-[1.02] transition-transform active:scale-95 shadow-sm" onclick="simulateLoading('Groq')">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+                            Translate with Groq
+                        </button>
+<button class="flex items-center gap-2 brand-gradient text-white px-6 py-2.5 rounded-full font-label-sm text-label-sm hover:scale-[1.02] transition-transform active:scale-95 shadow-sm" onclick="simulateLoading('Zen AI')">
+<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+                            Translate with Zen AI
+                        </button>
+</div>
+</div>
+
+<!-- Result Card -->
+<div class="hidden" id="translation-result">
+<div class="bg-white/90 rounded-2xl shadow-md border border-outline-variant overflow-hidden">
+<div class="px-6 py-4 border-b border-outline-variant flex justify-between items-center bg-surface-container-lowest/90">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<span class="font-label-sm text-label-sm font-bold text-on-surface">Result</span>
+<span class="ml-2 px-2 py-0.5 bg-primary-container text-on-primary-container rounded-lg text-[10px] font-bold uppercase tracking-wider" id="model-badge">Zen AI</span>
+</div>
+<span class="text-on-surface-variant font-label-sm text-label-sm" id="time-taken">2.35 seconds</span>
+</div>
+<div class="p-6">
+<p class="text-body-lg font-body-lg text-on-surface leading-relaxed" id="result-text">
+                                This is where your translated text will appear.
+                            </p>
+</div>
+<div class="px-6 py-3 bg-surface-container-low/90 flex justify-between items-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant" id="created-at-display">Created at: --</span>
+<button class="text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1" onclick="copyResult()">
+<span class="material-symbols-outlined text-[20px]">content_copy</span>
+<span class="text-[12px] font-medium">Copy</span>
+</button>
+</div>
+</div>
+</div>
+
+<!-- Loading Spinner -->
+<div class="hidden flex flex-col items-center justify-center py-12 space-y-4" id="loader">
+<div class="spinner"></div>
+<p class="font-label-sm text-label-sm text-on-surface-variant italic">Thinking in lightning speed...</p>
+</div>
+</div>
+
+<!-- HISTORY TAB -->
+<div class="tab-content space-y-6" id="tab-history">
+<div class="flex items-center justify-between mb-2">
+<div class="flex bg-surface-container/90 rounded-xl p-1">
+<button class="px-6 py-2 rounded-lg bg-white shadow-sm font-label-sm text-label-sm text-primary font-bold" id="groq-history-tab" onclick="switchHistory('groq')">Groq History</button>
+<button class="px-6 py-2 rounded-lg font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors" id="zen-history-tab" onclick="switchHistory('zen')">Zen History</button>
+<button class="px-6 py-2 rounded-lg font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors" id="comparison-history-tab" onclick="switchHistory('comparison')">Comparison History</button>
+</div>
+<button class="flex items-center gap-2 text-error font-label-sm text-label-sm hover:underline" onclick="clearHistory()">
+<span class="material-symbols-outlined text-[18px]">delete_sweep</span>
+                        Clear All
+                    </button>
+</div>
+<div class="bg-white/90 rounded-2xl shadow-sm border border-outline-variant overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low/90" id="history-table-head">
+<tr>
+<th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant">ID</th>
+<th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant">Original</th>
+<th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant">Translation</th>
+<th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant">Languages</th>
+<th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant">Time</th>
+<th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant" id="history-table-body">
+<tr class="hover:bg-surface-container-lowest transition-colors">
+<td class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant" colspan="6">No translations yet. Start translating to see your history here.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- COMPARE TAB -->
+<div class="tab-content space-y-6" id="tab-compare">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+<div class="space-y-2">
+<label class="block text-label-sm font-label-sm text-on-surface-variant">Groq Translation ID</label>
+<input class="w-full bg-surface-container border border-outline-variant rounded-xl p-3 focus:ring-2 focus:ring-primary outline-none" id="groq-id-input" placeholder="Enter ID from Groq history" type="number"/>
+</div>
+<div class="space-y-2">
+<label class="block text-label-sm font-label-sm text-on-surface-variant">Zen Translation ID</label>
+<input class="w-full bg-surface-container border border-outline-variant rounded-xl p-3 focus:ring-2 focus:ring-primary outline-none" id="zen-id-input" placeholder="Enter ID from Zen history" type="number"/>
+</div>
+</div>
+<div class="flex justify-center">
+<button class="brand-gradient text-white px-10 py-3 rounded-full font-label-sm text-label-sm font-bold shadow-md hover:scale-105 transition-transform active:scale-95" onclick="runComparison()">
+                        Compare Results
+                    </button>
+</div>
+
+<!-- Comparison Cards Layout -->
+<div class="hidden grid grid-cols-1 md:grid-cols-2 gap-6 mt-8" id="compare-result">
+<div class="bg-white/90 p-6 rounded-2xl border-2 border-primary shadow-lg relative" id="groq-card">
+<div class="hidden absolute -top-3 left-6 bg-primary text-white px-4 py-1 rounded-full text-[10px] font-bold uppercase flex items-center gap-1" id="groq-winner-badge">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">emoji_events</span>
+                            Winner
+                        </div>
+<h4 class="font-bold text-primary mb-2">Groq (LLaMA)</h4>
+<p class="text-body-md text-on-surface">Time taken</p>
+<p class="text-display-lg-mobile font-display-lg-mobile" id="groq-time-display">--</p>
+</div>
+<div class="bg-white/90 p-6 rounded-2xl border border-outline-variant shadow-sm relative" id="zen-card">
+<div class="hidden absolute -top-3 left-6 bg-primary text-white px-4 py-1 rounded-full text-[10px] font-bold uppercase flex items-center gap-1" id="zen-winner-badge">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">emoji_events</span>
+                            Winner
+                        </div>
+<h4 class="font-bold text-on-surface-variant mb-2">Zen (DeepSeek)</h4>
+<p class="text-body-md text-on-surface">Time taken</p>
+<p class="text-display-lg-mobile font-display-lg-mobile" id="zen-time-display">--</p>
+</div>
+</div>
+</div>
+
+</div>
+
+<!-- COMING SOON TAB -->
+<div class="tab-content space-y-6" id="tab-coming-soon">
+  <div class="text-center mb-8">
+    <h3 class="text-headline-md font-headline-md text-on-surface">What's Next?</h3>
+    <p class="font-label-sm text-label-sm text-on-surface-variant mt-2">These features are in development and will be added in future updates.</p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+    <!-- Card 1: Smart Input Analyzer -->
+    <div class="bg-white/90 rounded-2xl shadow-sm border border-outline-variant overflow-hidden relative flex flex-col">
+      <div class="absolute top-4 right-4 bg-surface-variant text-on-surface-variant px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Coming Soon</div>
+      <div class="p-6 flex flex-col items-center text-center flex-1">
+        <span class="material-symbols-outlined text-5xl text-outline mb-4" style="font-size: 48px;">auto_fix_high</span>
+        <h4 class="font-bold text-body-md font-body-md text-on-surface mb-2">Smart Input Analyzer</h4>
+        <p class="font-label-sm text-label-sm text-on-surface-variant leading-relaxed mb-6">Automatically detects whether your input is a single word, a line, or a full paragraph — and adjusts the AI prompt accordingly for faster, more accurate translations.</p>
+        <div class="mt-auto">
+          <button class="bg-surface-variant text-on-surface-variant px-6 py-2.5 rounded-full font-label-sm text-label-sm cursor-not-allowed opacity-60" disabled>Try it (Coming Soon)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: AI Accuracy Checker -->
+    <div class="bg-white/90 rounded-2xl shadow-sm border border-outline-variant overflow-hidden relative flex flex-col">
+      <div class="absolute top-4 right-4 bg-surface-variant text-on-surface-variant px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Coming Soon</div>
+      <div class="p-6 flex flex-col items-center text-center flex-1">
+        <span class="material-symbols-outlined text-5xl text-outline mb-4" style="font-size: 48px;">fact_check</span>
+        <h4 class="font-bold text-body-md font-body-md text-on-surface mb-2">AI Accuracy Checker</h4>
+        <p class="font-label-sm text-label-sm text-on-surface-variant leading-relaxed mb-4">A second AI model reviews the first model's translation. If it's correct, it's left unchanged. If not, it's corrected — and you'll see an accuracy percentage chart for every translation.</p>
+
+        <!-- Placeholder bar chart -->
+        <div class="w-full space-y-3 mb-4">
+          <div>
+            <div class="flex justify-between text-[12px] font-label-sm mb-1">
+              <span class="text-on-surface-variant">Groq</span>
+              <span class="text-on-surface-variant font-semibold">92%</span>
+            </div>
+            <div class="w-full bg-surface-container-low rounded-full h-3">
+              <div class="bg-primary rounded-full h-3" style="width: 92%;"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-[12px] font-label-sm mb-1">
+              <span class="text-on-surface-variant">Zen</span>
+              <span class="text-on-surface-variant font-semibold">87%</span>
+            </div>
+            <div class="w-full bg-surface-container-low rounded-full h-3">
+              <div class="bg-tertiary rounded-full h-3" style="width: 87%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-auto">
+          <button class="bg-surface-variant text-on-surface-variant px-6 py-2.5 rounded-full font-label-sm text-label-sm cursor-not-allowed opacity-60" disabled>Try it (Coming Soon)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Multi-Language Translation -->
+    <div class="bg-white/90 rounded-2xl shadow-sm border border-outline-variant overflow-hidden relative flex flex-col">
+      <div class="absolute top-4 right-4 bg-surface-variant text-on-surface-variant px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Coming Soon</div>
+      <div class="p-6 flex flex-col items-center text-center flex-1">
+        <span class="material-symbols-outlined text-5xl text-outline mb-4" style="font-size: 48px;">translate</span>
+        <h4 class="font-bold text-body-md font-body-md text-on-surface mb-2">Multi-Language Translation</h4>
+        <p class="font-label-sm text-label-sm text-on-surface-variant leading-relaxed mb-4">Translate one sentence into multiple languages at once. Select as many target languages as you want and get all translations in a single response.</p>
+
+        <!-- Language pills -->
+        <div class="flex flex-wrap justify-center gap-2 mb-4">
+          <span class="bg-surface-variant text-on-surface-variant px-3 py-1 rounded-full text-[12px] font-medium">Urdu</span>
+          <span class="bg-surface-variant text-on-surface-variant px-3 py-1 rounded-full text-[12px] font-medium">Arabic</span>
+          <span class="bg-surface-variant text-on-surface-variant px-3 py-1 rounded-full text-[12px] font-medium">French</span>
+          <span class="bg-surface-variant text-on-surface-variant px-3 py-1 rounded-full text-[12px] font-medium">Spanish</span>
+          <span class="bg-surface-variant text-on-surface-variant px-3 py-1 rounded-full text-[12px] font-medium">German</span>
+        </div>
+
+        <div class="mt-auto">
+          <button class="bg-surface-variant text-on-surface-variant px-6 py-2.5 rounded-full font-label-sm text-label-sm cursor-not-allowed opacity-60" disabled>Try it (Coming Soon)</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="bg-surface-container-lowest/90 border-t border-outline-variant py-6 mt-12">
+<div class="max-w-container-max mx-auto px-gutter flex flex-col md:flex-row justify-between items-center gap-4">
+<span class="font-bold text-on-surface">LinguistAI</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant">© 2025 LinguistAI — Personal Translator with History</p>
+</div>
+</footer>
+</main>
+</div>
+
+<script>
+        // ===== Tab switching =====
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                btn.classList.remove('bg-secondary-container', 'text-on-secondary-container');
+                btn.classList.add('text-on-surface-variant');
+            });
+            const activeBtn = document.querySelector(`[data-tab-id="${tabId}"]`);
+            activeBtn.classList.add('bg-secondary-container', 'text-on-secondary-container');
+            activeBtn.classList.remove('text-on-surface-variant');
+
+            document.getElementById('page-title').innerText = tabId.charAt(0).toUpperCase() + tabId.slice(1);
+        }
+
+        // ===== Translate (connect to FastAPI) =====
+        async function simulateLoading(model) {
+            const result = document.getElementById('translation-result');
+            const loader = document.getElementById('loader');
+            const badge = document.getElementById('model-badge');
+            const time = document.getElementById('time-taken');
+            const resultText = document.getElementById('result-text');
+            const createdAt = document.getElementById('created-at-display');
+
+            const text = document.getElementById('translate-input').value;
+            const sourceLang = document.getElementById('source-lang').value;
+            const targetLang = document.getElementById('target-lang').value;
+
+            if (!text.trim()) {
+                alert('Please enter some text to translate.');
+                return;
+            }
+
+            result.classList.add('hidden');
+            loader.classList.remove('hidden');
+
+            const endpoint = model === 'Groq' ? '/ask' : '/ask/zen';
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        original_text: text,
+                        source_lang: sourceLang,
+                        target_lang: targetLang
+                    })
+                });
+                const data = await response.json();
+
+                loader.classList.add('hidden');
+                result.classList.remove('hidden');
+                badge.innerText = data.model_used || model;
+                time.innerText = data.time_taken || '--';
+                resultText.innerText = data.translation || '';
+                createdAt.innerText = 'Created at: ' + (data.created_at || '--');
+            } catch (err) {
+                loader.classList.add('hidden');
+                alert('Error: could not reach the server.');
+            }
+        }
+
+        function copyResult() {
+            const text = document.getElementById('result-text').innerText;
+            navigator.clipboard.writeText(text);
+        }
+
+        // ===== History (connect to FastAPI) =====
+        let currentHistoryModel = 'groq';
+
+        async function switchHistory(model) {
+            currentHistoryModel = model;
+            const groqTab = document.getElementById('groq-history-tab');
+            const zenTab = document.getElementById('zen-history-tab');
+            const comparisonTab = document.getElementById('comparison-history-tab');
+            const tabs = [groqTab, zenTab, comparisonTab];
+
+            tabs.forEach(tab => {
+                tab.classList.remove('bg-white', 'shadow-sm', 'text-primary', 'font-bold');
+                tab.classList.add('text-on-surface-variant');
+            });
+
+            let activeTab;
+            if (model === 'groq') activeTab = groqTab;
+            else if (model === 'zen') activeTab = zenTab;
+            else activeTab = comparisonTab;
+
+            activeTab.classList.add('bg-white', 'shadow-sm', 'text-primary', 'font-bold');
+            activeTab.classList.remove('text-on-surface-variant');
+
+            await loadHistory();
+        }
+
+        async function loadHistory() {
+            const tbody = document.getElementById('history-table-body');
+            const thead = document.getElementById('history-table-head');
+
+            if (currentHistoryModel === 'comparison') {
+                thead.innerHTML = `
+                    <tr>
+                        <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant">Comparison ID</th>
+                        <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant">Groq Chat ID</th>
+                        <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant">Zen Chat ID</th>
+                        <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant">Groq Time</th>
+                        <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant">Zen Time</th>
+                        <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant">Winner</th>
+                        <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant text-right">Action</th>
+                    </tr>
+                `;
+
+                try {
+                    const response = await fetch('/compare/history');
+                    const records = await response.json();
+
+                    if (!records.length) {
+                        tbody.innerHTML = `<tr><td class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant" colspan="7">No comparisons yet. Run a comparison to see history here.</td></tr>`;
+                        return;
+                    }
+
+                    tbody.innerHTML = records.map(r => `
+                        <tr class="hover:bg-surface-container-lowest transition-colors">
+                            <td class="px-6 py-4 font-label-sm text-label-sm">#${r.id}</td>
+                            <td class="px-6 py-4 font-body-md text-body-md">Groq Chat #${r.groq_id}</td>
+                            <td class="px-6 py-4 font-body-md text-body-md">Zen Chat #${r.zen_id}</td>
+                            <td class="px-6 py-4 font-label-sm text-label-sm">${r.groq_time}</td>
+                            <td class="px-6 py-4 font-label-sm text-label-sm">${r.zen_time}</td>
+                            <td class="px-6 py-4 font-label-sm text-label-sm font-bold text-primary">${r.winner}</td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="text-on-surface-variant hover:text-error transition-colors" onclick="deleteRecord(${r.id})">
+                                    <span class="material-symbols-outlined">delete</span>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } catch (err) {
+                    tbody.innerHTML = `<tr><td class="px-6 py-4 font-label-sm text-label-sm text-error" colspan="7">Could not load comparison history.</td></tr>`;
+                }
+                return;
+            }
+
+            // Restore translation table header (Groq / Zen history)
+            thead.innerHTML = `
+                <tr>
+                    <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant">ID</th>
+                    <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant">Original</th>
+                    <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant">Translation</th>
+                    <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant">Languages</th>
+                    <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant">Time</th>
+                    <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant text-right">Action</th>
+                </tr>
+            `;
+
+            const endpoint = currentHistoryModel === 'groq' ? '/history' : '/history/zen';
+
+            try {
+                const response = await fetch(endpoint);
+                const records = await response.json();
+
+                if (!records.length) {
+                    tbody.innerHTML = `<tr><td class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant" colspan="6">No translations yet. Start translating to see your history here.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = records.map(r => `
+                    <tr class="hover:bg-surface-container-lowest transition-colors">
+                        <td class="px-6 py-4 font-label-sm text-label-sm">#${r.id}</td>
+                        <td class="px-6 py-4 font-body-md text-body-md truncate max-w-[150px]">${r.original_text}</td>
+                        <td class="px-6 py-4 font-body-md text-body-md truncate max-w-[150px]">${r.translation}</td>
+                        <td class="px-6 py-4 font-label-sm text-label-sm">${r.source_lang} → ${r.target_lang}</td>
+                        <td class="px-6 py-4 font-label-sm text-label-sm">${r.time_taken}</td>
+                        <td class="px-6 py-4 text-right">
+                            <button class="text-on-surface-variant hover:text-error transition-colors" onclick="deleteRecord(${r.id})">
+                                <span class="material-symbols-outlined">delete</span>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tbody.innerHTML = `<tr><td class="px-6 py-4 font-label-sm text-label-sm text-error" colspan="6">Could not load history.</td></tr>`;
+            }
+        }
+
+        async function deleteRecord(id) {
+            let endpoint;
+            if (currentHistoryModel === 'groq') endpoint = `/history/${id}`;
+            else if (currentHistoryModel === 'zen') endpoint = `/history/zen/${id}`;
+            else endpoint = `/compare/${id}`;
+
+            await fetch(endpoint, { method: 'DELETE' });
+            loadHistory();
+        }
+
+        async function clearHistory() {
+            let endpoint;
+            if (currentHistoryModel === 'groq') endpoint = '/history/all/clear';
+            else if (currentHistoryModel === 'zen') endpoint = '/history/zen/all/clear';
+            else endpoint = '/compare/all/clear';
+
+            await fetch(endpoint, { method: 'DELETE' });
+            loadHistory();
+        }
+
+        // Load history on first visit to that tab
+        document.querySelector('[data-tab-id="history"]').addEventListener('click', loadHistory);
+
+        // ===== Compare (connect to FastAPI) =====
+        async function runComparison() {
+            const groqId = document.getElementById('groq-id-input').value;
+            const zenId = document.getElementById('zen-id-input').value;
+            const resultDiv = document.getElementById('compare-result');
+            const groqCard = document.getElementById('groq-card');
+            const zenCard = document.getElementById('zen-card');
+            const groqBadge = document.getElementById('groq-winner-badge');
+            const zenBadge = document.getElementById('zen-winner-badge');
+
+            if (!groqId || !zenId) {
+                alert('Please enter both IDs.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/compare', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ groq_id: parseInt(groqId), zen_id: parseInt(zenId) })
+                });
+                const data = await response.json();
+
+                document.getElementById('groq-time-display').innerText = data.groq_time;
+                document.getElementById('zen-time-display').innerText = data.zen_time;
+
+                // Highlight winner
+                groqCard.classList.remove('border-2', 'border-primary', 'shadow-lg', 'border-outline-variant', 'shadow-sm');
+                zenCard.classList.remove('border-2', 'border-primary', 'shadow-lg', 'border-outline-variant', 'shadow-sm');
+                groqBadge.classList.add('hidden');
+                zenBadge.classList.add('hidden');
+
+                if (data.winner === 'Groq') {
+                    groqCard.classList.add('border-2', 'border-primary', 'shadow-lg');
+                    zenCard.classList.add('border', 'border-outline-variant', 'shadow-sm');
+                    groqBadge.classList.remove('hidden');
+                } else {
+                    zenCard.classList.add('border-2', 'border-primary', 'shadow-lg');
+                    groqCard.classList.add('border', 'border-outline-variant', 'shadow-sm');
+                    zenBadge.classList.remove('hidden');
+                }
+
+                resultDiv.classList.remove('hidden');
+
+                // If Comparison History tab is currently open, refresh it
+                if (currentHistoryModel === 'comparison') {
+                    loadHistory();
+                }
+            } catch (err) {
+                alert('Error: could not run comparison.');
+            }
+        }
+
+        // ===== Cursor-reactive dot grid background =====
+        (function () {
+            const canvas = document.getElementById('dot-grid-canvas');
+            const ctx = canvas.getContext('2d');
+            let width, height;
+            let mouseX = -1000, mouseY = -1000;
+
+            const spacing = 28;
+            const baseRadius = 1.5;
+            const glowRadius = 70;
+
+            function resize() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            window.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+
+            window.addEventListener('mouseleave', () => {
+                mouseX = -1000;
+                mouseY = -1000;
+            });
+
+            function draw() {
+                ctx.clearRect(0, 0, width, height);
+
+                for (let x = 0; x < width; x += spacing) {
+                    for (let y = 0; y < height; y += spacing) {
+                        const dx = x - mouseX;
+                        const dy = y - mouseY;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+
+                        let radius = baseRadius;
+                        let alpha = 0.12;
+                        let color = '79, 55, 138'; // primary purple
+
+                        if (dist < glowRadius) {
+                            const t = 1 - dist / glowRadius;
+                            radius = baseRadius + t * 3;
+                            alpha = 0.12 + t * 0.6;
+                        }
+
+                        ctx.beginPath();
+                        ctx.arc(x, y, radius, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(${color}, ${alpha})`;
+                        ctx.fill();
+                    }
+                }
+
+                requestAnimationFrame(draw);
+            }
+            draw();
+        })();
+    </script>
+</body></html>
